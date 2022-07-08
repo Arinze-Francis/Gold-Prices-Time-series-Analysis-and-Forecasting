@@ -1,0 +1,233 @@
+---
+title: " Daily gold pricesForecasting Models"
+author: "Arinze Francis"
+date: '2022-07-08'
+output: html_document
+---
+
+# R set up
+```{r}
+rm(list=ls())
+options(scipen=999,digits=4)
+rm
+
+```
+
+
+# Load R packages
+
+```{r}
+library(readxl)
+library(tidyquant)
+library(tidyverse)
+library(lubridate)
+library(xts)
+library(quantmod)
+library(tseries)
+library(zoo)
+library(ggplot2)
+library(fpp2)
+library(data.table)
+library(forecast)
+library(anytime)
+```
+
+
+# Dataset Loading
+
+```{r}
+data <- ts(gold, start = c(1985,1), frequency = 365.25)
+class(data)
+frequency(data)
+summary(data)
+
+plot(data)
+# There is an outlier, the long spike.
+# There are NA's values, the broken plot which could be seen better by using summary NA functions.
+
+
+```
+
+
+# Cleaning Na's and outliers: Since I didn't get the missing values from the data collector; I will have to use a ts function to statistically get it.
+
+```{r}
+# Cleaning the data
+data_clean <- tsclean(data)
+data_clean
+
+# Further check if there are NAs
+summary(data_clean) 
+
+# plot the cleaned data
+
+plot.ts(data_clean,ylab="Morning Gold Prices", xlab="Daily", main="Morning Gold Prices vs   Individual days")
+# There is heteroscedasticity
+# mean is constant
+# variance is not constant.
+# There is no seasonality component
+
+
+```
+# To ascertain if there is a seasonal components
+
+```{r}
+
+ggseasonplot(data_clean, year.labels = T, year.labels.left = T) +ylab("degree") +ggtitle("Seasonal Plot:  Daily Gold Prices Data ")
+# There is no seasonality
+
+
+ggseasonplot(data_clean, polar = T) +ylab("degree") +ggtitle("Polar plot: Daily Gold Prices")
+# The plot is circular meanaing there is no seasonality.
+
+
+```
+
+# Splitting the dataset for training and testing
+
+```{r}
+
+data_train <- window(data_clean, start=c(1985,1),end=c(1987,5), freq=365.25)
+data_train
+
+
+data_test <- window(data_clean, start=c(1987,6), freq=365.25)
+data_test
+
+
+autoplot(data_train, series = "Train") + autolayer(data_test, series = "Test") + ggtitle("Gold Prices train and test set") +xlab("Individual days") +ylab("Gold Prices")+guides(colour=guide_legend(title = "Forecast"))
+
+
+```
+
+# Data forecasting methods 
+
+
+```{r}
+
+naiveF <- naive(data_train, h=365*3) ; naiveF  # Naive method
+plot(naiveF)
+
+
+meanFo <- meanf(data_train, h=365*3);meanFo   # Average method
+plot(meanFo)
+
+rwff <- rwf(data_train, h=365*3, drift = T) ;rwff  # Random walk with drift
+
+
+
+
+
+
+
+```
+# Accuracy Measures of the forecasting Methods and checking residuals
+
+```{r}
+
+# Accuracy measures
+
+accuracy(naiveF, data_test)
+accuracy(meanFo, data_test)
+accuracy(rwff, data_test)
+
+# the Random walk with drift method has the best model becuase it has the lowest RMSE, MAE, MASE, MAPE
+
+
+# Checking residuals
+
+print(summary(meanFo))
+checkresiduals(meanFo)
+
+print(summary(naiveF))
+checkresiduals(naiveF)
+
+print(summary(rwff))
+checkresiduals(rwff)
+
+
+# the Random walk with drit method  has the lowest std.dev
+
+```
+
+# Further plotting
+
+
+```{r}
+naiveFF <- naive(data_clean, h=365*3) ; naiveFF  # Naive method
+plot(naiveFF)
+
+meanFoo <- meanf(data_clean, h=365*3);meanFoo  # Average method
+plot(meanFoo)
+
+rwfff <- rwf(data_clean, h=365*3, drift = T) ;rwfff  # Random walk with drift
+plot(rwfff)
+
+
+print(summary(meanFoo))
+checkresiduals(meanFoo)
+
+print(summary(naiveFF))
+checkresiduals(naiveFF)
+
+print(summary(rwfff))
+checkresiduals(rwfff)
+
+
+
+```
+
+
+
+# Comaprison plot for 3 models
+
+```{r}
+
+library(ggplot2)
+
+autoplot(data_clean) + forecast::autolayer(meanFoo$mean, series = "Average model")+forecast::autolayer(rwfff$mean, series = "Random Walk with drift model")+forecast::autolayer(naiveFF$mean, series = "Naive model")+xlab("Individual days") +ylab("Daily Gold Prices") + guides (colour = guide_legend(title = "Forecast Model Methods")) + theme(legend.position = c(0.9,0.9))
+
+# Random walk with drift methods is the best model cos it picked up the trend
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
